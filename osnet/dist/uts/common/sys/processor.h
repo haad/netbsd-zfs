@@ -54,7 +54,11 @@ typedef uint16_t lgrpid_t;
 /*
  * Type for processor name (CPU number).
  */
+<<<<<<< HEAD
 //typedef	int	processorid_t;
+=======
+typedef	int	processorid_t;
+>>>>>>> master
 typedef int	chipid_t;
 
 /*
