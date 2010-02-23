@@ -540,7 +540,7 @@ zfs_read(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct)
 
 	ASSERT(uio->uio_loffset < zp->z_phys->zp_size);
 	n = MIN(uio->uio_resid, zp->z_phys->zp_size - uio->uio_loffset);
-
+#ifdef PORT_SOLARIS
 	if ((uio->uio_extflg == UIO_XUIO) &&
 	    (((xuio_t *)uio)->xu_type == UIOTYPE_ZEROCOPY)) {
 		int nblk;
@@ -569,7 +569,7 @@ zfs_read(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct)
 			}
 		}
 	}
-
+#endif
 	while (n > 0) {
 		nbytes = MIN(n, zfs_read_chunk_size -
 		    P2PHASE(uio->uio_loffset, zfs_read_chunk_size));
@@ -908,11 +908,12 @@ again:
 			ASSERT(tx_bytes <= uio->uio_resid);
 			uioskip(uio, tx_bytes);
 		}
+#ifdef PORT_SOLARIS
 		if (tx_bytes && vn_has_cached_data(vp)) {
 			update_pages(vp, woff,
 			    tx_bytes, zfsvfs->z_os, zp->z_id);
 		}
-
+#endif
 		/*
 		 * If we made no progress, we're done.  If we made even
 		 * partial progress, update the znode and ZIL accordingly.
@@ -1243,7 +1244,6 @@ zfs_lookup(vnode_t *dvp, char *nm, vnode_t **vpp, struct componentname *cnp,
 	}
 
 	DTRACE_PROBE2(zfs__fastpath__lookup__miss, vnode_t *, dvp, char *, nm);
->>>>>>> master
 
 	ZFS_ENTER(zfsvfs);
 	ZFS_VERIFY_ZP(zdp);
@@ -1585,7 +1585,7 @@ top:
 		if ((ZTOV(zp)->v_type == VREG) &&
 		    (vap->va_mask & AT_SIZE) && (vap->va_size == 0)) {
 			/* we can't hold any locks when calling zfs_freesp() */
-			zfs_dirent_unlock(dl, 0);
+			zfs_dirent_unlock(dl);
 			dl = NULL;
 			error = zfs_freesp(zp, 0, 0, mode, TRUE);
 			if (error == 0) {
@@ -1595,7 +1595,7 @@ top:
 	}
 out:
 	if (dl)
-		zfs_dirent_unlock(dl, 0);
+		zfs_dirent_unlock(dl);
 
 	if (error) {
 		if (zp)
@@ -1726,7 +1726,7 @@ top:
 
 	error = dmu_tx_assign(tx, TXG_NOWAIT);
 	if (error) {
-		zfs_dirent_unlock(dl, 0);
+		zfs_dirent_unlock(dl);
 		VN_RELE(vp);
 		if (error == ERESTART) {
 			dmu_tx_wait(tx);
@@ -1795,7 +1795,7 @@ out:
 	if (realnmp)
 		pn_free(realnmp);
 
-	zfs_dirent_unlock(dl, 0);
+	zfs_dirent_unlock(dl);
 
 	if (!delete_now) {
 		VN_RELE(vp);
@@ -1893,7 +1893,7 @@ top:
 	}
 
 	if (error = zfs_zaccess(dzp, ACE_ADD_SUBDIRECTORY, 0, B_FALSE, cr)) {
-		zfs_dirent_unlock(dl, 0);
+		zfs_dirent_unlock(dl);
 		ZFS_EXIT(zfsvfs);
 		return (error);
 	}
@@ -2049,7 +2049,7 @@ top:
 	if (error) {
 		rw_exit(&zp->z_parent_lock);
 		rw_exit(&zp->z_name_lock);
-		zfs_dirent_unlock(dl, 0);
+		zfs_dirent_unlock(dl);
 		VN_RELE(vp);
 		if (error == ERESTART) {
 			dmu_tx_wait(tx);
@@ -2079,7 +2079,7 @@ top:
 	rw_exit(&zp->z_parent_lock);
 	rw_exit(&zp->z_name_lock);
 out:
-	zfs_dirent_unlock(dl, 0);
+	zfs_dirent_unlock(dl);
 
 	VN_RELE(vp);
 
@@ -3480,7 +3480,7 @@ top:
 			 * If renaming within the one directory we must
 			 * be careful not to recursively acquire locks.
 			 */
-			zflg |= ZSAMEDIR;
+			zflg |= ZHAVELOCK;
 		}
 		terr = zfs_dirent_lock(&tdl,
 		    tdzp, tnm, &tzp, ZRENAMING | zflg, NULL, NULL);
@@ -3493,7 +3493,7 @@ top:
 			 * If renaming within the one directory we must
 			 * be careful not to recursively acquire locks.
 			 */
-			zflg |= ZSAMEDIR;
+			zflg |= ZHAVELOCK;
 		}
 		serr = zfs_dirent_lock(&sdl,
 		    sdzp, snm, &szp, ZEXISTS | ZRENAMING | zflg,
@@ -3505,7 +3505,7 @@ top:
 		 * Source entry invalid or not there.
 		 */
 		if (!terr) {
-			zfs_dirent_unlock(tdl, 0);
+			zfs_dirent_unlock(tdl);
 			if (tzp)
 				VN_RELE(ZTOV(tzp));
 		}
@@ -3520,7 +3520,7 @@ top:
 	}
 	if (terr) {
 		if (sdl != NULL)
-			zfs_dirent_unlock(sdl, 0);
+			zfs_dirent_unlock(sdl);
 		VN_RELE(ZTOV(szp));
 
 		if (sdzp == tdzp)
@@ -3656,8 +3656,8 @@ out:
 	if (zl != NULL)
 		zfs_rename_unlock(&zl);
 
-	zfs_dirent_unlock(sdl, zflg);
-	zfs_dirent_unlock(tdl, 0);
+	zfs_dirent_unlock(sdl);
+	zfs_dirent_unlock(tdl);
 
 	if (sdzp == tdzp)
 		rw_exit(&sdzp->z_name_lock);
@@ -3692,7 +3692,7 @@ out:
 /*ARGSUSED*/
 static int
 zfs_symlink(vnode_t *dvp, vnode_t **vpp, char *name, vattr_t *vap, char *link,
-    cred_t *cr)
+    cred_t *cr, int flags)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	zfs_dirlock_t	*dl;
@@ -3818,7 +3818,7 @@ top:
 
 	dmu_tx_commit(tx);
 
-	zfs_dirent_unlock(dl, 0);
+	zfs_dirent_unlock(dl);
 
 	ZFS_EXIT(zfsvfs);
 	return (error);
@@ -4000,7 +4000,7 @@ top:
 
 	dmu_tx_commit(tx);
 
-	zfs_dirent_unlock(dl, 0);
+	zfs_dirent_unlock(dl);
 
 	if (error == 0) {
 		vnevent_link(svp, ct);
@@ -4084,6 +4084,7 @@ zfs_fid(vnode_t *vp, fid_t *fidp, caller_context_t *ct)
  *	vp - ctime|mtime updated
  */
 /*ARGSUSED*/
+#ifdef PORT_SOLARIS
 static int
 zfs_putpage(vnode_t *vp, offset_t off, size_t len, int flags, cred_t *cr,
     caller_context_t *ct)
@@ -4224,6 +4225,7 @@ zfs_inactive(vnode_t *vp, cred_t *cr, caller_context_t *ct)
 	zfs_zinactive(zp);
 	rw_exit(&zfsvfs->z_teardown_inactive_lock);
 }
+#endif /* PORT_SOLARIS */
 
 /*
  * Bounds-check the seek operation.
@@ -4246,6 +4248,7 @@ zfs_seek(vnode_t *vp, offset_t ooff, offset_t *noffp,
 	return ((*noffp < 0 || *noffp > MAXOFFSET_T) ? EINVAL : 0);
 }
 
+#ifdef PORT_SOLARIS
 /*
  * Pre-filter the generic locking function to trap attempts to place
  * a mandatory lock on a memory mapped file.
@@ -4273,6 +4276,7 @@ zfs_frlock(vnode_t *vp, int cmd, flock64_t *bfp, int flag, offset_t offset,
 	ZFS_EXIT(zfsvfs);
 	return (fs_frlock(vp, cmd, bfp, flag, offset, flk_cbp, cr, ct));
 }
+
 
 /*
  * If we can't find a page in the cache, we will create a new page
@@ -4678,7 +4682,6 @@ zfs_fid(vnode_t *vp, fid_t *fidp, caller_context_t *ct)
 	for (i = 0; i < sizeof (zfid->zf_object); i++)
 		zfid->zf_object[i] = (uint8_t)(object >> (8 * i));
 
->>>>>>> master
 	/* Must have a non-zero generation number to distinguish from .zfs */
 	if (gen == 0)
 		gen = 1;
@@ -4702,6 +4705,7 @@ zfs_fid(vnode_t *vp, fid_t *fidp, caller_context_t *ct)
 	ZFS_EXIT(zfsvfs);
 	return (0);
 }
+#endif /* PORT_SOLARIS */
 
 static int
 zfs_pathconf(vnode_t *vp, int cmd, ulong_t *valp, cred_t *cr,
@@ -4731,7 +4735,7 @@ zfs_pathconf(vnode_t *vp, int cmd, ulong_t *valp, cred_t *cr,
 		error = zfs_dirent_lock(&dl, zp, "", &xzp,
 		    ZXATTR | ZEXISTS | ZSHARED, NULL, NULL);
 		if (error == 0) {
-			zfs_dirent_unlock(dl, 0);
+			zfs_dirent_unlock(dl);
 			if (!zfs_dirempty(xzp))
 				*valp = 1;
 			VN_RELE(ZTOV(xzp));
@@ -5079,7 +5083,7 @@ zfs_netbsd_symlink(struct vop_symlink_args *ap)
 	vattr_init_mask(vap);
 
 	return (zfs_symlink(ap->a_dvp, ap->a_vpp, (char *)cnp->cn_nameptr, vap,
-	    ap->a_target, cnp->cn_cred));
+		ap->a_target, cnp->cn_cred, 0));
 }
 
 #ifdef PORT_SOLARIS
@@ -5335,7 +5339,6 @@ zfs_netbsd_reclaim(struct vop_reclaim_args *ap)
 		return (0);
 	}
 	mutex_exit(&zp->z_lock);
->>>>>>> master
 
 	mutex_enter(&zp->z_lock);
 	if (!zp->z_unlinked) {

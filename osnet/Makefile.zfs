@@ -37,6 +37,9 @@ CPPFLAGS+=	-I${ZFSDIR}/dist/lib/libuutil/common
 CPPFLAGS+=	-I${ZFSDIR}/dist/lib/libzfs/common
 CPPFLAGS+=	-I${ZFSDIR}/dist/lib/libzpool/common
 
+CPPFLAGS+=      -I${ZFSDIR}/dist/common
+
+
 LIBAVL_SRCDIR= ${ZFSDIR}/lib/libavl
 LIBNVPAIR_SRCDIR= ${ZFSDIR}/lib/libnvpair
 LIBUMEM_SRCDIR= ${ZFSDIR}/lib/libumem

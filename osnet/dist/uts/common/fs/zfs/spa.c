@@ -671,6 +671,7 @@ spa_thread(void *arg)
 	callb_cpr_t cprinfo;
 
 	spa_t *spa = arg;
+#ifdef PORT_SOLARIS
 	user_t *pu = PTOU(curproc);
 
 	CALLB_CPR_INIT(&cprinfo, &spa->spa_proc_lock, callb_generic_cpr,
@@ -706,9 +707,8 @@ spa_thread(void *arg)
 	if (zio_taskq_sysdc) {
 		sysdc_thread_enter(curthread, 100, 0);
 	}
-
+#endif /* PORT_SOLARIS */
 	spa->spa_proc = curproc;
-	spa->spa_did = curthread->t_did;
 
 	spa_create_zio_taskqs(spa);
 
@@ -729,8 +729,8 @@ spa_thread(void *arg)
 	cv_broadcast(&spa->spa_proc_cv);
 	CALLB_CPR_EXIT(&cprinfo);	/* drops spa_proc_lock */
 
-	mutex_enter(&curproc->p_lock);
-	lwp_exit();
+/*	mutex_enter(curproc->p_lock);
+	lwp_exit(curproc); */
 }
 #endif
 

@@ -64,4 +64,27 @@
 #define	LE_64(x)	BMASK_64(x)
 #endif
 
+/*
+ * Macros to convert from a specific byte order to/from native byte order
+ */
+#ifdef _BIG_ENDIAN
+#define	BE_8(x)		BMASK_8(x)
+#define	BE_16(x)	BMASK_16(x)
+#define	BE_32(x)	BMASK_32(x)
+#define	BE_64(x)	BMASK_64(x)
+#define	LE_8(x)		BSWAP_8(x)
+#define	LE_16(x)	BSWAP_16(x)
+#define	LE_32(x)	BSWAP_32(x)
+#define	LE_64(x)	BSWAP_64(x)
+#else
+#define	LE_8(x)		BMASK_8(x)
+#define	LE_16(x)	BMASK_16(x)
+#define	LE_32(x)	BMASK_32(x)
+#define	LE_64(x)	BMASK_64(x)
+#define	BE_8(x)		BSWAP_8(x)
+#define	BE_16(x)	BSWAP_16(x)
+#define	BE_32(x)	BSWAP_32(x)
+#define	BE_64(x)	BSWAP_64(x)
+#endif
+
 #endif /* _OPENSOLARIS_SYS_BYTEORDER_H_ */

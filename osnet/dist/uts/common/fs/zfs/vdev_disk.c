@@ -234,7 +234,6 @@ vdev_disk_ioctl_done(void *zio_arg, int error)
 
 	zio->io_error = error;
 
->>>>>>> master
 	zio_interrupt(zio);
 }
 

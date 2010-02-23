@@ -82,7 +82,7 @@ extern "C" {
 #include <sys/zone.h>
 #include <sys/pathname.h>
 #include <sys/sysevent.h>
-	
+
 extern void panic(const char *, ...);
 
 #include <sys/cmn_err.h>
@@ -95,6 +95,8 @@ extern void panic(const char *, ...);
 #define	ABS(a) ((a) < 0 ? -(a) : (a))
 #endif
 
+extern int aok;
+	
 /*
  * Debugging
  */
@@ -568,8 +570,10 @@ typedef void			*di_devlink_handle_t;
 extern char *kmem_asprintf(const char *fmt, ...);
 #define strfree(str) kmem_free((str), strlen(str)+1)
 
-#define print_timestamp(a)	0
-	
+//#define print_timestamp(a)	0
+
+extern void print_timestamp(int);
+
 #define DEV_PHYS_PATH "phys_path"
 
 #define DDI_SLEEP KM_SLEEP
@@ -585,6 +589,7 @@ extern char *kmem_asprintf(const char *fmt, ...);
 #include <sys/stdint.h>
 #include <sys/note.h>
 #include <sys/kernel.h>
+#include <sys/kstat.h>
 #include <sys/debug.h>
 #include <sys/proc.h>
 #include <sys/sysmacros.h>

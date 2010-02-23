@@ -679,13 +679,14 @@ dmu_xuio_init(xuio_t *xuio, int nblk)
 	priv->cnt = nblk;
 	priv->bufs = kmem_zalloc(nblk * sizeof (arc_buf_t *), KM_SLEEP);
 	priv->iovp = uio->uio_iov;
+#ifdef PORT_SOLARIS
 	XUIO_XUZC_PRIV(xuio) = priv;
 
 	if (XUIO_XUZC_RW(xuio) == UIO_READ)
 		XUIOSTAT_INCR(xuiostat_onloan_rbuf, nblk);
 	else
 		XUIOSTAT_INCR(xuiostat_onloan_wbuf, nblk);
-
+#endif
 	return (0);
 }
 
@@ -698,11 +699,12 @@ dmu_xuio_fini(xuio_t *xuio)
 	kmem_free(priv->iovp, nblk * sizeof (iovec_t));
 	kmem_free(priv->bufs, nblk * sizeof (arc_buf_t *));
 	kmem_free(priv, sizeof (dmu_xuio_t));
-
+#ifdef PORT_SOLARIS
 	if (XUIO_XUZC_RW(xuio) == UIO_READ)
 		XUIOSTAT_INCR(xuiostat_onloan_rbuf, -nblk);
 	else
 		XUIOSTAT_INCR(xuiostat_onloan_wbuf, -nblk);
+#endif	
 }
 
 /*
@@ -751,6 +753,7 @@ dmu_xuio_clear(xuio_t *xuio, int i)
 	priv->bufs[i] = NULL;
 }
 
+#ifdef PORT_SOLARIS
 static void
 xuio_stat_init(void)
 {
@@ -771,6 +774,7 @@ xuio_stat_fini(void)
 		xuio_ksp = NULL;
 	}
 }
+#endif
 
 void
 xuio_stat_wbuf_copied()
@@ -1515,7 +1519,9 @@ dmu_init(void)
 	zfetch_init();
 	arc_init();
 	l2arc_init();
+#ifdef PORT_SOLARIS	
 	xuio_stat_init();
+#endif	
 }
 
 void
@@ -1526,5 +1532,7 @@ dmu_fini(void)
 	dnode_fini();
 	dbuf_fini();
 	l2arc_fini();
+#ifdef PORT_SOLARIS
 	xuio_stat_fini();
+#endif	
 }

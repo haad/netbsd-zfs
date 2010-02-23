@@ -1025,7 +1025,6 @@ zfsvfs_create(const char *osname, zfsvfs_t **zfvp)
 
 	mutex_init(&zfsvfs->z_znodes_lock, NULL, MUTEX_DEFAULT, NULL);
 	mutex_init(&zfsvfs->z_lock, NULL, MUTEX_DEFAULT, NULL);
-	mutex_init(&zfsvfs->z_online_recv_lock, NULL, MUTEX_DEFAULT, NULL);
 	list_create(&zfsvfs->z_all_znodes, sizeof (znode_t),
 	    offsetof(znode_t, z_link_node));
 	rrw_init(&zfsvfs->z_teardown_lock);
@@ -1179,7 +1178,6 @@ zfs_domount(vfs_t *vfsp, char *osname)
 		return (error);
 	zfsvfs->z_vfs = vfsp;
 	zfsvfs->z_parent = zfsvfs;
-	zfsvfs->z_assign = TXG_NOWAIT;
 	zfsvfs->z_max_blksz = SPA_MAXBLOCKSIZE;
 	zfsvfs->z_show_ctldir = ZFS_SNAPDIR_VISIBLE;
 
@@ -1210,10 +1208,10 @@ zfs_domount(vfs_t *vfsp, char *osname)
 	 */
 	fsid_guid = dmu_objset_fsid_guid(zfsvfs->z_os);
 	ASSERT((fsid_guid & ~((1ULL<<56)-1)) == 0);
-	vfsp->vfs_fsid.val[0] = fsid_guid;
-	vfsp->vfs_fsid.val[1] = ((fsid_guid>>32) << 8) |
+	vfsp->mnt_stat.f_fsidx.__fsid_val[0] = fsid_guid;
+	vfsp->mnt_stat.f_fsidx.__fsid_val[1] = ((fsid_guid>>32) << 8) |
 	    zfsfstype & 0xFF;
-
+	
 	dprintf("zfs_domount vrele after vfsp->vfs_count %d\n", vfsp->vfs_count);
 	/*
 	 * Set features for file system.
@@ -1362,7 +1360,7 @@ zfs_parse_bootfs(char *bpath, char *outpath)
 	return (error);
 }
 
-#ifndef __NetBSD__
+
 /*
  * zfs_check_global_label:
  *	Check that the hex label string is appropriate for the dataset
@@ -1375,6 +1373,7 @@ zfs_parse_bootfs(char *bpath, char *outpath)
 int
 zfs_check_global_label(const char *dsname, const char *hexsl)
 {
+#ifdef PORT_SOLARIS
 	if (strcasecmp(hexsl, ZFS_MLSLABEL_DEFAULT) == 0)
 		return (0);
 	if (strcasecmp(hexsl, ADMIN_HIGH) == 0)
@@ -1389,6 +1388,9 @@ zfs_check_global_label(const char *dsname, const char *hexsl)
 		return (rdonly ? 0 : EACCES);
 	}
 	return (EACCES);
+#else
+	return 0;
+#endif	
 }
 
 /*
@@ -1405,6 +1407,7 @@ zfs_check_global_label(const char *dsname, const char *hexsl)
 static int
 zfs_mount_label_policy(vfs_t *vfsp, char *osname)
 {
+#ifdef PORT_SOLARIS	
 	int		error, retv;
 	zone_t		*mntzone = NULL;
 	ts_label_t	*mnt_tsl;
@@ -1494,9 +1497,12 @@ zfs_mount_label_policy(vfs_t *vfsp, char *osname)
 	label_rele(mnt_tsl);
 	zone_rele(mntzone);
 	return (retv);
+#else   /* PORT_SOLARIS */
+	return (0);
+#endif
 }
 
->>>>>>> master
+#ifndef __NetBSD__
 static int
 zfs_mountroot(vfs_t *vfsp, enum whymountroot why)
 {

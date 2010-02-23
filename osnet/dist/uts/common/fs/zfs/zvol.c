@@ -481,7 +481,6 @@ zvol_create_minor(const char *name)
 	objset_t *os;
 	dmu_object_info_t doi;
 	minor_t minor = 0;
-	int ds_mode = DS_MODE_OWNER;
 	vnode_t *vp = NULL;
 	char *devpath;
 	size_t devpathlen = strlen(ZVOL_FULL_DEV_DIR) + strlen(name) + 1;
@@ -541,7 +540,7 @@ zvol_create_minor(const char *name)
 		minor = zvol_minor_alloc();
 
 	if (minor == 0) {
-		dmu_objset_close(os);
+		dmu_objset_disown(os, zvol_tag);
 		mutex_exit(&zvol_state_lock);
 		kmem_free(devpath, devpathlen);
 		return (ENXIO);
@@ -557,7 +556,7 @@ zvol_create_minor(const char *name)
 	    (char *)name);
 
 	if (ddi_create_minor_node(zfs_dip, (char *)name, S_IFCHR,
-	    minor, DDI_PSEUDO, maj) == DDI_FAILURE) {
+	    minor, DDI_PSEUDO, 0) == DDI_FAILURE) {
 		ddi_soft_state_free(zvol_state, minor);
 		dmu_objset_disown(os, zvol_tag);
 		mutex_exit(&zvol_state_lock);
@@ -566,7 +565,7 @@ zvol_create_minor(const char *name)
 	}
 
 	if (ddi_create_minor_node(zfs_dip, (char *)name, S_IFBLK,
-	    minor, DDI_PSEUDO, maj) == DDI_FAILURE) {
+	    minor, DDI_PSEUDO, 0) == DDI_FAILURE) {
 		ddi_remove_minor_node(zfs_dip, (char *)name);
 		ddi_soft_state_free(zvol_state, minor);
 		dmu_objset_disown(os, zvol_tag);

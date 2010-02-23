@@ -708,10 +708,11 @@ boolean_t
 zfs_groupmember(zfsvfs_t *zfsvfs, uint64_t id, cred_t *cr)
 {
 	ksid_t		*ksid = crgetsid(cr, KSID_GROUP);
-	ksidlist_t	*ksidlist = crgetsidlist(cr);
 	uid_t		gid;
 
 #ifdef PORT_SOLARIS
+	ksidlist_t	*ksidlist = crgetsidlist(cr);
+		
 	if (ksid && ksidlist) {
 		int 		i;
 		ksid_t		*ksid_groups;

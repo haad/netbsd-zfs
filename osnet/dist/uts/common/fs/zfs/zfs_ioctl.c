@@ -347,6 +347,7 @@ zfs_secpolicy_write_perms(const char *name, const char *perm, cred_t *cr)
 static int
 zfs_set_slabel_policy(const char *name, char *strval, cred_t *cr)
 {
+#ifdef PORT_SOLARIS
 	char		ds_hexsl[MAXNAMELEN];
 	bslabel_t	ds_sl, new_sl;
 	boolean_t	new_default = FALSE;
@@ -434,12 +435,16 @@ out_check:
 	if (needed_priv != -1)
 		return (PRIV_POLICY(cr, needed_priv, B_FALSE, EPERM, NULL));
 	return (0);
+#else
+	return (ENOTSUP);
+#endif
 }
 
 static int
 zfs_secpolicy_setprop(const char *dsname, zfs_prop_t prop, nvpair_t *propval,
     cred_t *cr)
 {
+#ifdef PORT_SOLARIS
 	char *strval;
 
 	/*
@@ -486,6 +491,9 @@ zfs_secpolicy_setprop(const char *dsname, zfs_prop_t prop, nvpair_t *propval,
 	}
 
 	return (zfs_secpolicy_write_perms(dsname, zfs_prop_to_name(prop), cr));
+#else
+	return (ENOTSUP);
+#endif
 }
 
 int
@@ -525,18 +533,18 @@ zfs_secpolicy_deleg_share(zfs_cmd_t *zc, cred_t *cr)
 	int error;
 
 	if ((error = lookupname(zc->zc_value, UIO_SYSSPACE,
-	    NO_FOLLOW, NULL, &vp)) != 0)
+		    NULL, &vp)) != 0)
 		return (error);
 
 	/* Now make sure mntpnt and dataset are ZFS */
-
+#ifndef __NetBSD__
 	if (vp->v_vfsp->vfs_fstype != zfsfstype ||
 	    (strcmp((char *)refstr_value(vp->v_vfsp->vfs_resource),
 	    zc->zc_name) != 0)) {
 		VN_RELE(vp);
 		return (EPERM);
 	}
-
+#endif
 	VN_RELE(vp);
 	return (dsl_deleg_access(zc->zc_name,
 	    ZFS_DELEG_PERM_SHARE, cr));
@@ -557,11 +565,16 @@ zfs_secpolicy_share(zfs_cmd_t *zc, cred_t *cr)
 	} else {
 		return (zfs_secpolicy_deleg_share(zc, cr));
 	}
+#endif
 }
 
 int
 zfs_secpolicy_smb_acl(zfs_cmd_t *zc, cred_t *cr)
 {
+#ifdef __NetBSD__
+	printf("XXX zfs_secpolicy_share write me\n");
+	return EPERM;
+#else	
 	if (!INGLOBALZONE(curproc))
 		return (EPERM);
 
@@ -3646,9 +3659,9 @@ zfs_ioc_send(zfs_cmd_t *zc)
 
 	error = fd_getvnode(zc->zc_cookie, &fp);
 	if (error != 0) {
-		dmu_objset_rele(tosnap);
+		dmu_objset_rele(tosnap, FTAG);
 		if (fromsnap)
-			dmu_objset_rele(fromsnap);
+			dmu_objset_rele(fromsnap, FTAG);
 		return (error);
 	}
 
@@ -4075,7 +4088,6 @@ zfs_ioc_share(zfs_cmd_t *zc)
 	return (error);
 
 }
-#endif	/* __NetBSD__ */
 
 ace_t full_access[] = {
 	{(uid_t)-1, ACE_ALL_PERMS, ACE_EVERYONE, 0}
@@ -4118,18 +4130,18 @@ zfs_ioc_smb_acl(zfs_cmd_t *zc)
 	int error = 0;
 
 	if ((error = lookupname(zc->zc_value, UIO_SYSSPACE,
-	    NO_FOLLOW, NULL, &vp)) != 0)
+		    NULL, &vp)) != 0)
 		return (error);
 
 	/* Now make sure mntpnt and dataset are ZFS */
-
+#ifndef __NetBSD__
 	if (vp->v_vfsp->vfs_fstype != zfsfstype ||
 	    (strcmp((char *)refstr_value(vp->v_vfsp->vfs_resource),
 	    zc->zc_name) != 0)) {
 		VN_RELE(vp);
 		return (EINVAL);
 	}
-
+#endif
 	dzp = VTOZ(vp);
 	zfsvfs = dzp->z_zfsvfs;
 	ZFS_ENTER(zfsvfs);
@@ -4229,6 +4241,7 @@ zfs_ioc_smb_acl(zfs_cmd_t *zc)
 
 	return (error);
 }
+#endif	/* __NetBSD__ */
 
 /*
  * inputs:
@@ -4385,8 +4398,8 @@ static zfs_ioc_vec_t zfs_ioc_vec[] = {
 	{ zfs_ioc_share, zfs_secpolicy_share, DATASET_NAME, B_FALSE, B_FALSE },
 	{ zfs_ioc_inherit_prop, zfs_secpolicy_inherit, DATASET_NAME, B_TRUE,
 	    B_TRUE },
-	{ zfs_ioc_smb_acl, zfs_secpolicy_smb_acl, DATASET_NAME, B_FALSE,
-	    B_FALSE },
+	/*{ zfs_ioc_smb_acl, zfs_secpolicy_smb_acl, DATASET_NAME, B_FALSE,
+	  B_FALSE },*/
 	{ zfs_ioc_userspace_one, zfs_secpolicy_userspace_one,
 	    DATASET_NAME, B_FALSE, B_FALSE },
 	{ zfs_ioc_userspace_many, zfs_secpolicy_userspace_many,
@@ -4428,11 +4441,11 @@ zfsdev_ioctl(dev_t dev, int cmd, intptr_t arg, int flag, cred_t *cr, int *rvalp)
 	uint_t vec;
 	int error, rc;
 
-	dprintf("zfsdev_ioctl called \n");
+	printf("zfsdev_ioctl called \n");
 
 	if (getminor(dev) != 0)
 		return (zvol_ioctl(dev, cmd, arg, flag, cr, rvalp));
-	dprintf("zfsdev_ioctl -> zvol_ioctl\n");
+	printf("zfsdev_ioctl -> zvol_ioctl\n");
 	vec = cmd - ZFS_IOC;
 	ASSERT3U(getmajor(dev), ==, ddi_driver_major(zfs_dip));
 
@@ -4441,16 +4454,16 @@ zfsdev_ioctl(dev_t dev, int cmd, intptr_t arg, int flag, cred_t *cr, int *rvalp)
 
 	zc = kmem_zalloc(sizeof (zfs_cmd_t), KM_SLEEP);
 
-#if 0	
 	/* XXX is this still needed ? */
 	error = xcopyin((void *)arg, zc, sizeof (zfs_cmd_t));
-	dprintf("zfsdev_ioct zc_value %s, zc_string\n", zc->zc_value, zc->zc_string);
-	dprintf("zfsdev_ioctl -> calling zfs_ioc_vec secpolicy function on %d\n", vec);
+	printf("zfsdev_ioct zc_value %s, zc_string\n", zc->zc_value, zc->zc_string);
+	printf("zfsdev_ioctl -> calling zfs_ioc_vec secpolicy function on %d\n", vec);
 	if (error == 0)
-#endif
+#if 0	
 	error = ddi_copyin((void *)arg, zc, sizeof (zfs_cmd_t), flag);
 
 	if ((error == 0) && !(flag & FKIOCTL))
+#endif
 		error = zfs_ioc_vec[vec].zvec_secpolicy(zc, cr);
 
 	/*
@@ -4483,7 +4496,7 @@ zfsdev_ioctl(dev_t dev, int cmd, intptr_t arg, int flag, cred_t *cr, int *rvalp)
 		}
 	}
 
-	dprintf("zfsdev_ioctl -> calling zfs_ioc_vec zvec_func on %d\n", vec);
+	printf("zfsdev_ioctl -> calling zfs_ioc_vec zvec_func on %d\n", vec);
 	if (error == 0)
 		error = zfs_ioc_vec[vec].zvec_func(zc);
 
@@ -4495,6 +4508,7 @@ zfsdev_ioctl(dev_t dev, int cmd, intptr_t arg, int flag, cred_t *cr, int *rvalp)
 	}
 
 	kmem_free(zc, sizeof (zfs_cmd_t));
+	printf("zfsdev_ioctl %d\n", error);
 	return (error);
 }
 

@@ -5,6 +5,7 @@
 
 .PATH: ${.CURDIR}/../../dist/common/zfs
 .PATH: ${.CURDIR}/../../dist/common/unicode
+.PATH: ${.CURDIR}/../../dist/common/util
 .PATH: ${.CURDIR}/../../dist/lib/libzpool/common
 .PATH: ${.CURDIR}/../../dist/uts/common/fs/zfs
 .PATH: ${.CURDIR}/../../dist/uts/common/os

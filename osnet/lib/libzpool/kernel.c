@@ -54,6 +54,7 @@ __RCSID("$NetBSD: kernel.c,v 1.1 2009/03/26 22:11:44 ad Exp $");
 #ifdef XXXNETBSD
 int hz = 119;	/* frequency when using gethrtime() >> 23 for lbolt */
 #endif
+int aok;
 uint64_t physmem;
 vnode_t *rootdir = (vnode_t *)0xabcd1234;
 char hw_serial[11];
@@ -694,4 +695,11 @@ ptob(size_t npg)
 {
 
 	return npg * pgsize;
+}
+
+void
+print_timestamp(int fmt)
+{
+
+	return;
 }
