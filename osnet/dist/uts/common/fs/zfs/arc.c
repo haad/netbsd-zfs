@@ -133,6 +133,50 @@
 #include <sys/callb.h>
 #include <sys/kstat.h>
 
+#ifdef __NetBSD__
+#include <uvm/uvm.h>
+#ifndef btop
+#define	btop(x)		((x) / PAGE_SIZE)
+#endif
+#define	needfree	(uvmexp.free < uvmexp.freetarg ? uvmexp.freetarg : 0)
+#define	buf_init	arc_buf_init
+#define	freemem		uvmexp.free
+#define	minfree		uvmexp.freemin
+#define	desfree		uvmexp.freetarg
+#define	lotsfree	(desfree * 2)
+#define	availrmem	desfree
+#define	swapfs_minfree	0
+#define	swapfs_reserve	0
+#undef curproc
+#define	curproc		curlwp
+#define	proc_pageout	uvm.pagedaemon_lwp
+
+#define	heap_arena	kernel_map
+#define	VMEM_ALLOC	1
+#define	VMEM_FREE	2
+static inline size_t
+vmem_size(struct vm_map *map, int flag)
+{
+	switch (flag) {
+	case VMEM_ALLOC:
+		return map->size;
+	case VMEM_FREE:
+		return vm_map_max(map) - vm_map_min(map) - map->size;
+	case VMEM_FREE|VMEM_ALLOC:
+		return vm_map_max(map) - vm_map_min(map);
+	default:
+		panic("vmem_size");
+	}
+}
+static void	*zio_arena;
+
+#include <sys/callback.h>
+/* Structures used for memory and kva space reclaim. */
+static struct callback_entry arc_kva_reclaim_entry;
+static struct uvm_reclaim_hook arc_hook;
+
+#endif	/* __NetBSD__ */
+
 static kmutex_t		arc_reclaim_thr_lock;
 static kcondvar_t	arc_reclaim_thr_cv;	/* used to signal reclaim thr */
 static uint8_t		arc_thread_exit;
@@ -749,7 +793,7 @@ buf_fini(void)
 static int
 hdr_cons(void *vbuf, void *unused, int kmflag)
 {
-	arc_buf_hdr_t *buf = vbuf;
+	arc_buf_hdr_t *buf = unused;
 
 	bzero(buf, sizeof (arc_buf_hdr_t));
 	refcount_create(&buf->b_refcnt);
@@ -764,7 +808,7 @@ hdr_cons(void *vbuf, void *unused, int kmflag)
 static int
 buf_cons(void *vbuf, void *unused, int kmflag)
 {
-	arc_buf_t *buf = vbuf;
+	arc_buf_t *buf = unused;
 
 	bzero(buf, sizeof (arc_buf_t));
 	rw_init(&buf->b_lock, NULL, RW_DEFAULT, NULL);
@@ -779,7 +823,7 @@ buf_cons(void *vbuf, void *unused, int kmflag)
 static void
 hdr_dest(void *vbuf, void *unused)
 {
-	arc_buf_hdr_t *buf = vbuf;
+	arc_buf_hdr_t *buf = unused;
 
 	refcount_destroy(&buf->b_refcnt);
 	cv_destroy(&buf->b_cv);
@@ -792,7 +836,7 @@ hdr_dest(void *vbuf, void *unused)
 static void
 buf_dest(void *vbuf, void *unused)
 {
-	arc_buf_t *buf = vbuf;
+	arc_buf_t *buf = unused;
 
 	rw_destroy(&buf->b_lock);
 }
@@ -825,7 +869,7 @@ buf_init(void)
 	 * with an average 64K block size.  The table will take up
 	 * totalmem*sizeof(void*)/64K (eg. 128KB/GB with 8-byte pointers).
 	 */
-	while (hsize * 65536 < physmem * PAGESIZE)
+	while (hsize * 65536 < (uint64_t)physmem * PAGESIZE)
 		hsize <<= 1;
 retry:
 	buf_hash_table.ht_mask = hsize - 1;
@@ -1934,7 +1978,7 @@ arc_reclaim_thread(void)
 		/* block until needed, or one second, whichever is shorter */
 		CALLB_CPR_SAFE_BEGIN(&cpr);
 		(void) cv_timedwait(&arc_reclaim_thr_cv,
-		    &arc_reclaim_thr_lock, (lbolt + hz));
+		    &arc_reclaim_thr_lock, (hz));
 		CALLB_CPR_SAFE_END(&cpr, &arc_reclaim_thr_lock);
 	}
 
@@ -3233,10 +3277,8 @@ arc_memory_throttle(uint64_t reserve, uint64_t txg)
 	static uint64_t page_load = 0;
 	static uint64_t last_txg = 0;
 
-#if defined(__i386)
 	available_memory =
 	    MIN(available_memory, vmem_size(heap_arena, VMEM_FREE));
-#endif
 	if (available_memory >= zfs_write_limit_max)
 		return (0);
 
@@ -3333,6 +3375,33 @@ arc_tempreserve_space(uint64_t reserve, uint64_t txg)
 	atomic_add_64(&arc_tempreserve, reserve);
 	return (0);
 }
+
+#if defined(__NetBSD__) && defined(_KERNEL)
+/* Reclaim hook registered to uvm for reclaiming KVM and memory */
+static void
+arc_uvm_reclaim_hook(void)
+{
+
+	if (mutex_tryenter(&arc_reclaim_thr_lock)) {
+		cv_broadcast(&arc_reclaim_thr_cv);
+		mutex_exit(&arc_reclaim_thr_lock);
+	}
+}
+
+static int
+arc_kva_reclaim_callback(struct callback_entry *ce, void *obj, void *arg)
+{
+
+	
+	if (mutex_tryenter(&arc_reclaim_thr_lock)) {
+		cv_broadcast(&arc_reclaim_thr_cv);
+		mutex_exit(&arc_reclaim_thr_lock);
+	}
+	
+	return CALLBACK_CHAIN_CONTINUE;
+}
+
+#endif /* __NetBSD__ */
 
 void
 arc_init(void)
@@ -3444,7 +3513,16 @@ arc_init(void)
 	}
 
 	(void) thread_create(NULL, 0, arc_reclaim_thread, NULL, 0, &p0,
-	    TS_RUN, minclsyspri);
+	    TS_RUN, maxclsyspri);
+
+#if defined(__NetBSD__) && defined(_KERNEL)
+	arc_hook.uvm_reclaim_hook = &arc_uvm_reclaim_hook;
+
+	uvm_reclaim_hook_add(&arc_hook);
+	callback_register(&vm_map_to_kernel(kernel_map)->vmk_reclaim_callback,
+	    &arc_kva_reclaim_entry, NULL, arc_kva_reclaim_callback);
+
+#endif
 
 	arc_dead = FALSE;
 	arc_warm = B_FALSE;
@@ -3492,9 +3570,16 @@ arc_fini(void)
 	mutex_destroy(&arc_mru_ghost->arcs_mtx);
 	mutex_destroy(&arc_mfu->arcs_mtx);
 	mutex_destroy(&arc_mfu_ghost->arcs_mtx);
-
+	mutex_destroy(&arc_l2c_only->arcs_mtx);
+	
 	mutex_destroy(&zfs_write_limit_lock);
 
+#if defined(__NetBSD__) && defined(_KERNEL)
+	uvm_reclaim_hook_del(&arc_hook);
+	callback_unregister(&vm_map_to_kernel(kernel_map)->vmk_reclaim_callback,
+	    &arc_kva_reclaim_entry);
+#endif 	
+	
 	buf_fini();
 }
 
@@ -4251,7 +4336,7 @@ l2arc_feed_thread(void)
 		 */
 		CALLB_CPR_SAFE_BEGIN(&cpr);
 		(void) cv_timedwait(&l2arc_feed_thr_cv, &l2arc_feed_thr_lock,
-		    lbolt + (hz * l2arc_feed_secs));
+		    (hz * l2arc_feed_secs));
 		CALLB_CPR_SAFE_END(&cpr, &l2arc_feed_thr_lock);
 
 		/*

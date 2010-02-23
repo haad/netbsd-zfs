@@ -19,7 +19,7 @@
  * CDDL HEADER END
  */
 /*
- * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+ * Copyright 2007 Sun Microsystems, Inc.  All rights reserved.
  * Use is subject to license terms.
  */
 
@@ -176,16 +176,22 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <assert.h>
+#if defined(sun)
 #include <synch.h>
+#endif
 #include <signal.h>
 #include <libgen.h>
 #include <string.h>
 #include <errno.h>
+#if defined(sun)
 #include <alloca.h>
+#endif
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/mman.h>
+#if defined(sun)
 #include <sys/sysconf.h>
+#endif
 
 #include "ctf_headers.h"
 #include "ctftools.h"
@@ -226,6 +232,7 @@ usage(void)
 	    progname, progname);
 }
 
+#if defined(sun)
 static void
 bigheap(void)
 {
@@ -273,6 +280,7 @@ bigheap(void)
 
 	(void) memcntl(NULL, 0, MC_HAT_ADVISE, (caddr_t)&mha, 0, 0);
 }
+#endif
 
 static void
 finalize_phase_one(workqueue_t *wq)
@@ -356,7 +364,7 @@ wip_save_work(workqueue_t *wq, wip_t *slot, int slotnum)
 	pthread_mutex_lock(&wq->wq_donequeue_lock);
 
 	while (wq->wq_lastdonebatch + 1 < slot->wip_batchid)
-		pthread_cond_wait(&slot->wip_cv, &wq->wq_donequeue_lock);
+		 pthread_cond_wait(&slot->wip_cv, &wq->wq_donequeue_lock);
 	assert(wq->wq_lastdonebatch + 1 == slot->wip_batchid);
 
 	fifo_add(wq->wq_donequeue, slot->wip_td);
@@ -595,10 +603,12 @@ terminate_cleanup(void)
 	if (outfile == NULL)
 		return;
 
+#if !defined(__FreeBSD__)
 	if (dounlink) {
 		fprintf(stderr, "Removing %s\n", outfile);
 		unlink(outfile);
 	}
+#endif
 }
 
 static void
@@ -655,6 +665,7 @@ wq_init(workqueue_t *wq, int nfiles)
 
 	for (i = 0; i < nslots; i++) {
 		pthread_mutex_init(&wq->wq_wip[i].wip_lock, NULL);
+		pthread_cond_init(&wq->wq_wip[i].wip_cv, NULL);
 		wq->wq_wip[i].wip_batchid = wq->wq_next_batchid++;
 	}
 
@@ -683,6 +694,7 @@ wq_init(workqueue_t *wq, int nfiles)
 static void
 start_threads(workqueue_t *wq)
 {
+	pthread_t thrid;
 	sigset_t sets;
 	int i;
 
@@ -697,9 +709,15 @@ start_threads(workqueue_t *wq)
 		    (void *(*)(void *))worker_thread, wq);
 	}
 
+#if defined(sun)
 	sigset(SIGINT, handle_sig);
 	sigset(SIGQUIT, handle_sig);
 	sigset(SIGTERM, handle_sig);
+#else
+	signal(SIGINT, handle_sig);
+	signal(SIGQUIT, handle_sig);
+	signal(SIGTERM, handle_sig);
+#endif
 	pthread_sigmask(SIG_UNBLOCK, &sets, NULL);
 }
 
@@ -712,6 +730,7 @@ join_threads(workqueue_t *wq)
 		pthread_join(wq->wq_thread[i], NULL);
 	}
 }
+
 
 static int
 strcompare(const void *p1, const void *p2)
