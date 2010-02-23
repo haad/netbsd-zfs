@@ -1,4 +1,4 @@
-#	$NetBSD: Makefile,v 1.5 2010/02/22 20:05:03 haad Exp $
+#	$NetBSD: Makefile,v 1.1 2009/03/26 22:11:44 ad Exp $
 
 .PATH:  ${.CURDIR}/../../dist/lib/libnvpair
 .PATH:  ${.CURDIR}/../../dist/common/nvpair

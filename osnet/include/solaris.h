@@ -1,4 +1,4 @@
-/*	$NetBSD: solaris.h,v 1.3 2010/02/21 01:46:34 darran Exp $	*/
+/*	$NetBSD: solaris.h,v 1.1 2009/03/26 22:11:44 ad Exp $	*/
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.

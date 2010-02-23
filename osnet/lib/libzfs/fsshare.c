@@ -1,4 +1,4 @@
-/*	$NetBSD: fsshare.c,v 1.2 2009/08/10 22:44:41 haad Exp $	*/
+/*	$NetBSD: fsshare.c,v 1.1 2009/08/07 20:57:56 haad Exp $	*/
 
 /*-
  * Copyright (c) 2007 Pawel Jakub Dawidek <pjd@FreeBSD.org>
@@ -28,7 +28,7 @@
 
 #include <sys/cdefs.h>
 /* __FBSDID("$FreeBSD: src/compat/opensolaris/misc/fsshare.c,v 1.2 2007/04/21 13:17:23 pjd Exp $"); */
-__RCSID("$NetBSD: fsshare.c,v 1.2 2009/08/10 22:44:41 haad Exp $");
+__RCSID("$NetBSD: fsshare.c,v 1.1 2009/08/07 20:57:56 haad Exp $");
 
 #include <sys/param.h>
 #include <stdio.h>

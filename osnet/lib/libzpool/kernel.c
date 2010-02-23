@@ -1,4 +1,4 @@
-/*	$NetBSD: kernel.c,v 1.1 2009/08/07 20:57:56 haad Exp $	*/
+/*	$NetBSD: kernel.c,v 1.1 2009/03/26 22:11:44 ad Exp $	*/
 
 /*
  * CDDL HEADER START
@@ -29,7 +29,7 @@
 #pragma ident	"%Z%%M%	%I%	%E% SMI"
 
 #include <sys/cdefs.h>
-__RCSID("$NetBSD: kernel.c,v 1.1 2009/08/07 20:57:56 haad Exp $");
+__RCSID("$NetBSD: kernel.c,v 1.1 2009/03/26 22:11:44 ad Exp $");
 
 #include <sys/zfs_context.h>
 #include <sys/sysctl.h>
@@ -62,6 +62,9 @@ size_t pgsize;
 struct utsname utsname = {
 	"userland"
 };
+
+/* this only exists to have its address taken */
+struct proc p0;
 
 /*
  * =========================================================================

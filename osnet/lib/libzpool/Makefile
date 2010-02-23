@@ -1,4 +1,4 @@
-#	$NetBSD: Makefile,v 1.4 2010/02/21 01:46:35 darran Exp $
+#	$NetBSD: Makefile,v 1.1 2009/08/07 20:57:56 haad Exp $
 
 .include "${.CURDIR}/../../dist/uts/common/Makefile.files"
 .include "../../Makefile.zfs"
@@ -8,6 +8,7 @@
 .PATH: ${.CURDIR}/../../dist/lib/libzpool/common
 .PATH: ${.CURDIR}/../../dist/uts/common/fs/zfs
 .PATH: ${.CURDIR}/../../dist/uts/common/os
+.PATH: ${.CURDIR}/../../sys/kern
 
 LIB=		zpool
 DPADD=		${LIBPTHREAD} ${LIBZ}
@@ -16,11 +17,14 @@ CPPFLAGS+=	-std=c99
 
 # Local stuff
 SRCS=		kernel.c kernel2.c
+SRCS+=		strext.c
 
 # Sun stuff
 SRCS+=		${ZFS_COMMON_OBJS:C/.o$/.c/}
 SRCS+=		${ZFS_SHARED_OBJS:C/.o$/.c/}
 SRCS+=		taskq.c util.c list.o u8_textprep.o
+
+
 
 # Add opensolaris atomic functions and use fakedones if we do not support them
 .if ${MACHINE_ARCH} == "i386"

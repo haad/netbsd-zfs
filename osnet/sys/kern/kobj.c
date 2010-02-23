@@ -1,4 +1,4 @@
-/*	$NetBSD: kobj.c,v 1.1 2009/08/07 20:57:57 haad Exp $	*/
+/*	$NetBSD: kobj.c,v 1.1 2009/03/26 22:11:45 ad Exp $	*/
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.
@@ -57,7 +57,7 @@
 
 #include <sys/cdefs.h>
 /* __FBSDID("$FreeBSD: src/sys/compat/opensolaris/kern/opensolaris_kobj.c,v 1.4 2007/05/31 11:51:49 kib Exp $"); */
-__KERNEL_RCSID(0, "$NetBSD: kobj.c,v 1.1 2009/08/07 20:57:57 haad Exp $");
+__KERNEL_RCSID(0, "$NetBSD: kobj.c,v 1.1 2009/03/26 22:11:45 ad Exp $");
 
 #include <sys/types.h>
 #include <sys/systm.h>

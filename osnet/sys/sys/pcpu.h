@@ -1,4 +1,4 @@
-/*	$NetBSD: pcpu.h,v 1.3 2010/02/21 01:46:36 darran Exp $	*/
+/*	$NetBSD: pcpu.h,v 1.1 2009/03/26 22:11:46 ad Exp $	*/
 
 /*
  * Copyright (C) 2007 John Birrell <jb@freebsd.org>

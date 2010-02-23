@@ -1,5 +1,3 @@
-/*	$NetBSD: kidmap.h,v 1.3 2010/02/21 01:46:36 darran Exp $	*/
-
 /*-
  * Copyright (c) 2007 Pawel Jakub Dawidek <pjd@FreeBSD.org>
  * All rights reserved.

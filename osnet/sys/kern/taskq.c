@@ -1,4 +1,4 @@
-/*	$NetBSD: taskq.c,v 1.1 2009/08/07 20:57:57 haad Exp $	*/
+/*	$NetBSD: taskq.c,v 1.1 2009/03/26 22:11:45 ad Exp $	*/
 
 /*
  * CDDL HEADER START
@@ -398,6 +398,8 @@ taskq_t *system_taskq;
  */
 #define SYSTEM_TASKQ_SIZE 1
 int system_taskq_size = SYSTEM_TASKQ_SIZE;
+
+#define	TASKQ_ACTIVE 	0x00010000
 
 /*
  * Dynamic task queue threads that don't get any work within

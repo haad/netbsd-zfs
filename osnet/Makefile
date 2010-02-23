@@ -1,4 +1,4 @@
-#	$NetBSD: Makefile,v 1.1 2009/08/07 20:57:55 haad Exp $
+#	$NetBSD: Makefile,v 1.1 2009/03/26 22:11:43 ad Exp $
 
 SUBDIR+= lib .WAIT
 

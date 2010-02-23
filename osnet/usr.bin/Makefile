@@ -1,12 +1,8 @@
-#	$NetBSD: Makefile,v 1.2 2010/02/21 01:46:36 darran Exp $
+#	$NetBSD: Makefile,v 1.1 2009/03/26 22:11:46 ad Exp $
 
 .include <bsd.own.mk>
 
-.if ${MKDTRACE} != "no"
-SUBDIR+=	ctfconvert ctfmerge ctfdump
-.endif
-
-.if ${MKZFS} != "no"
+.if !defined(MKZFS) || ${MKZFS} != "no"
 SUBDIR+=	ztest
 .endif
 

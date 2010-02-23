@@ -1,4 +1,4 @@
-/*	$NetBSD: qsort.h,v 1.1 2009/08/07 20:57:58 haad Exp $	*/
+/*	$NetBSD: qsort.h,v 1.1 2009/03/26 22:11:46 ad Exp $	*/
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.

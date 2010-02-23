@@ -1,4 +1,4 @@
-/*	$NetBSD: vfs.c,v 1.2 2009/10/11 10:54:52 haad Exp $	*/
+/*	$NetBSD: vfs.c,v 1.1 2009/08/07 20:57:57 haad Exp $	*/
 
 /*-
  * Copyright (c) 2006-2007 Pawel Jakub Dawidek <pjd@FreeBSD.org>

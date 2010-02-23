@@ -1,4 +1,4 @@
-#	$NetBSD: Makefile,v 1.2 2009/10/21 22:29:54 joerg Exp $
+#	$NetBSD: Makefile,v 1.1 2009/08/07 20:57:59 haad Exp $
 
 .include "../../Makefile.zfs"
 

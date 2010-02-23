@@ -1,4 +1,4 @@
-/*	$NetBSD: uio.h,v 1.3 2010/02/21 01:46:36 darran Exp $	*/
+/*	$NetBSD: uio.h,v 1.1 2009/03/26 22:11:46 ad Exp $	*/
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.
@@ -61,10 +61,12 @@
 #define	_OPENSOLARIS_SYS_UIO_H_
 
 #include_next <sys/uio.h>
+#include <sys/sysmacros.h>
 #include <sys/debug.h>
 
 #ifndef _KERNEL
 #include <assert.h>
+#include <string.h>
 
 #define	FOF_OFFSET	1	/* Use the offset in uio argument */
 
@@ -95,6 +97,48 @@ zfs_uiomove(void *cp, size_t n, enum uio_rw dir, uio_t *uio)
 	assert(uio->uio_rw == dir);
 	return (uiomove(cp, (int)n, uio));
 }
+
+static __inline int
+zfs_uiocopy(void *cp, size_t n, enum uio_rw dir, uio_t *uio, size_t *cbytes)
+{
+	uio_t uio2;
+	int err;
+	
+	memcpy(&uio2, uio, sizeof(*uio));
+	assert(uio->uio_rw == dir);
+	if ((err = uiomove(cp, (int)n, &uio2)) != 0)
+		return err;
+
+	*cbytes = uio->uio_resid - uio2.uio_resid;
+
+	return (0);
+}
+
+static __inline void
+zfs_uioskip(uio_t *uiop, size_t n)
+{
+	if (n > uiop->uio_resid)
+		return;
+	while (n != 0) {
+		register iovec_t        *iovp = uiop->uio_iov;
+		register size_t         niovb = MIN(iovp->iov_len, n);
+
+		if (niovb == 0) {
+			uiop->uio_iov++;
+			uiop->uio_iovcnt--;
+			continue;
+		}
+		iovp->iov_base += niovb;
+		uiop->uio_offset += niovb;
+		iovp->iov_len -= niovb;
+		uiop->uio_resid -= niovb;
+		n -= niovb;
+	}
+	
+}
+
 #define	uiomove(cp, n, dir, uio)	zfs_uiomove((cp), (n), (dir), (uio))
+#define uiocopy(cp, n, dir, uio, cbytes) 	zfs_uiocopy((cp), (n), (dir), (uio), (cbytes))
+#define uioskip(uio, size) 		zfs_uioskip((uio), (size))
 
 #endif	/* !_OPENSOLARIS_SYS_UIO_H_ */

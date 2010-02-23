@@ -1,4 +1,4 @@
-/*	$NetBSD: callb.c,v 1.1 2009/08/07 20:57:57 haad Exp $	*/
+/*	$NetBSD: callb.c,v 1.1 2009/03/26 22:11:45 ad Exp $	*/
 
 /*
  * CDDL HEADER START

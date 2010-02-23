@@ -1,4 +1,4 @@
-/*	$NetBSD: types.h,v 1.3 2010/02/21 01:46:36 darran Exp $	*/
+/*	$NetBSD: types.h,v 1.1 2009/03/26 22:11:46 ad Exp $	*/
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.
@@ -119,7 +119,6 @@ typedef	short		index_t;
 typedef	off_t		offset_t;
 typedef	long		ptrdiff_t;	/* pointer difference */
 typedef	int64_t		rlim64_t;
-typedef __caddr_t	caddr_t;	/* core address */
 
 #else
 

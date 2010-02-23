@@ -1,1 +1,1 @@
-/*	$NetBSD: ctype.h,v 1.1 2009/08/07 20:57:57 haad Exp $	*/
+/*	$NetBSD: ctype.h,v 1.1 2009/03/26 22:11:46 ad Exp $	*/
